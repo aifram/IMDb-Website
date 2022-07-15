@@ -1,172 +1,415 @@
-import React, { Component } from 'react';
-import PropTypes from 'prop-types';
-import { withStyles } from '@material-ui/core/styles';
-import CssBaseline from "@material-ui/core/CssBaseline";
-import { MuiThemeProvider, createTheme } from "@material-ui/core/styles";
-import Grid from "@material-ui/core/Grid";
+import React from "react";
+import { makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
-import Paper from "@material-ui/core/Paper";
+import Grid from "@material-ui/core/Grid";
+import InputLabel from "@material-ui/core/InputLabel";
+import MenuItem from "@material-ui/core/MenuItem";
+import FormHelperText from "@material-ui/core/FormHelperText";
+import FormControl from "@material-ui/core/FormControl";
+import Select from "@material-ui/core/Select";
+import TextField from "@material-ui/core/TextField";
+import Radio from "@material-ui/core/Radio";
+import RadioGroup from "@material-ui/core/RadioGroup";
+import FormControlLabel from "@material-ui/core/FormControlLabel";
+import FormLabel from "@material-ui/core/FormLabel";
+import Button from "@material-ui/core/Button";
+import { getThemeProps } from "@material-ui/styles";
 
-
-//Dev mode
-const serverURL = ""; //enable for dev mode
-
-//Deployment mode instructions
-//const serverURL = "http://ov-research-4.uwaterloo.ca:PORT"; //enable for deployed mode; Change PORT to the port number given to you;
-//To find your port number: 
-//ssh to ov-research-4.uwaterloo.ca and run the following command: 
-//env | grep "PORT"
-//copy the number only and paste it in the serverURL in place of PORT, e.g.: const serverURL = "http://ov-research-4.uwaterloo.ca:3000";
-
-const fetch = require("node-fetch");
-
-const opacityValue = 0.9;
-
-const theme = createTheme({
-  palette: {
-    type: 'dark',
-    background: {
-      default: "#000000"
-    },
-    primary: {
-      main: "#52f1ff",
-    },
-    secondary: {
-      main: "#b552f7",
-    },
-  },
-});
-
-const styles = theme => ({
+const useStyles = makeStyles((theme) => ({
   root: {
-    body: {
-      backgroundColor: "#000000",
-      opacity: opacityValue,
-      overflow: "hidden",
-    },
-  },
-  mainMessage: {
-    opacity: opacityValue,
-  },
-
-  mainMessageContainer: {
-    marginTop: "20vh",
-    marginLeft: theme.spacing(20),
-    [theme.breakpoints.down('xs')]: {
-      marginLeft: theme.spacing(4),
-    },
+    flexGrow: 1,
   },
   paper: {
-    overflow: "hidden",
+    padding: theme.spacing(2),
+    textAlign: "center",
+    color: theme.palette.text.secondary,
   },
-  message: {
-    opacity: opacityValue,
-    maxWidth: 250,
-    paddingBottom: theme.spacing(2),
+  formControl: {
+    margin: theme.spacing(1),
+    minWidth: 120,
   },
+  selectEmpty: {
+    marginTop: theme.spacing(2),
+  },
+}));
 
-});
+function MovieSelection(props) {
+  return (
+    <div>
+      <InputLabel id="demo-simple-select-label">Movie Title</InputLabel>
+      <Select
+        labelId="demo-simple-select-label"
+        id="demo-simple-select"
+        value={props.movieName}
+        onChange={props.handleTitle}
+        //HelperText={(props.movieName == '' && props.isSubmit) && ('Select Movie')}
+      >
+        {props.movies.map((movie) => {
+          return (
+            <MenuItem
+              value={movie.id}
+              data-name={movie.name}
+              data-id={movie.id}
+            >
+              {movie.name}
+            </MenuItem>
+          );
+        })}
+        {/* <MenuItem value={"Finding Nemo"}>Finding Nemo</MenuItem>
+        <MenuItem value={"The Incredibles"}>The Incredibles</MenuItem>
+        <MenuItem value={"Frozen"}>Frozen</MenuItem>
+        <MenuItem value={"Coco"}>Coco</MenuItem>
+        <MenuItem value={"Ratatouille"}>Ratatouille</MenuItem> */}
+      </Select>
+    </div>
+  );
+}
 
+function ReviewTitle(props) {
+  return (
+    <TextField
+      id="reviewTitle"
+      label="Review Title"
+      variant="outlined"
+      reviewtitle={props.reviewTitle}
+      onChange={props.handleReviewTitle}
+    />
+  );
+}
 
-class Home extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      userID: 1,
-      mode: 0
-    }
+function ReviewBody(props) {
+  return (
+    <div>
+      <TextField
+        id="review"
+        label="Review"
+        fullWidth
+        margin="normal"
+        InputLabelProps={{
+          shrink: true,
+        }}
+        multiline
+        minRows={4}
+        //container
+        review={props.review}
+        variant="filled"
+        onChange={props.handleReview}
+      />
+    </div>
+  );
+}
+
+function ReviewRating(props) {
+  return (
+    <>
+      <FormLabel component="legend">Rating</FormLabel>
+      <RadioGroup
+        aria-label="Rating"
+        name="Rating"
+        rating={props.rating}
+        onChange={props.handleRating}
+        row={true}
+      >
+        <FormControlLabel
+          value="1"
+          control={<Radio />}
+          label="1"
+          labelPlacement="bottom"
+        />
+        <FormControlLabel
+          value="2"
+          control={<Radio />}
+          label="2"
+          labelPlacement="bottom"
+        />
+        <FormControlLabel
+          value="3"
+          control={<Radio />}
+          label="3"
+          labelPlacement="bottom"
+        />
+        <FormControlLabel
+          value="4"
+          control={<Radio />}
+          label="4"
+          labelPlacement="bottom"
+        />
+        <FormControlLabel
+          value="5"
+          control={<Radio />}
+          label="5"
+          labelPlacement="bottom"
+        />
+      </RadioGroup>
+    </>
+  );
+}
+
+// class Home extends Component{}
+export default function Home() {
+  const classes = useStyles();
+
+  const serverURL = "http://ec2-18-188-101-79.us-east-2.compute.amazonaws.com:3033";
+
+  const [movies, setMovies] = React.useState([]);
+
+  const loadMovies = () => {
+    callApiGetMovies().then((res) => {
+      console.log("callApiGetMovies returned: ", res);
+      var parsed = JSON.parse(res.express);
+      console.log("callApiGetMovies parsed: ", parsed);
+      setMovies(parsed);
+    });
   };
 
-  componentDidMount() {
-    //this.loadUserSettings();
-  }
-
-
-  loadUserSettings() {
-    this.callApiLoadUserSettings()
-      .then(res => {
-        //console.log("loadUserSettings returned: ", res)
-        var parsed = JSON.parse(res.express);
-        console.log("loadUserSettings parsed: ", parsed[0].mode)
-        this.setState({ mode: parsed[0].mode });
-      });
-  }
-
-  callApiLoadUserSettings = async () => {
-    const url = serverURL + "/api/loadUserSettings";
-
+  const callApiAddReview = async () => {
+    const url = serverURL + "/api/addReview";
+    console.log(url);
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        //authorization: `Bearer ${this.state.token}`
       },
       body: JSON.stringify({
-        userID: this.state.userID
+        title: reviewTitle1.value,
+        content: review1.value,
+        rate: rating,
+        movieID: movieName.id,
       })
     });
     const body = await response.json();
+
     if (response.status !== 200) throw Error(body.message);
-    console.log("User settings: ", body);
+    console.log("Movies: ", body);
     return body;
-  }
+  };
 
-  render() {
-    const { classes } = this.props;
+  const callApiGetMovies = async () => {
+    const url = serverURL + "/api/getMovies";
+    console.log(url);
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    const body = await response.json();
+    if (response.status !== 200) throw Error(body.message);
+    console.log("Movies: ", body);
+    return body;
+  };
 
+  React.useEffect(() => {
+    console.log("use effect");
+    loadMovies();
+  }, []);
 
+  //Movie Title
+  const [movieName, setName] = React.useState({});
 
-    const mainMessage = (
-      <Grid
-        container
-        spacing={0}
-        direction="column"
-        justify="flex-start"
-        alignItems="flex-start"
-        style={{ minHeight: '100vh' }}
-        className={classes.mainMessageContainer}
-      >
-        <Grid item>
+  const handleTitle = (event) => {
+    setName(event.currentTarget.dataset);
+    // console.log();
+  };
 
-          <Typography
-            variant={"h3"}
-            className={classes.mainMessage}
-            align="flex-start"
-          >
-            {this.state.mode === 0 ? (
-              <React.Fragment>
-                Hello World!
-              </React.Fragment>
-            ) : (
-              <React.Fragment>
-                Welcome back!
-              </React.Fragment>
-            )}
+  //Review Title
+  const [reviewTitle, setReviewTitle] = React.useState("");
+
+  const handleReviewTitle = (event) => {
+    setReviewTitle(event.target.reviewTitle);
+  };
+
+  const reviewTitle1 = document.getElementById("reviewTitle");
+
+  //Review
+  const [review, setReview] = React.useState("");
+
+  const handleReview = (event) => {
+    setReview(event.target.review);
+  };
+
+  const review1 = document.getElementById("review");
+
+  //Rating
+  const [rating, setRating] = React.useState("");
+
+  const handleRating = (event) => {
+    setRating(event.target.value);
+  };
+
+  const [isSubmit, setSubmit] = React.useState(false);
+
+  const handleClick = () => {
+    setSubmit(true);
+
+    const err = document.getElementById("fail");
+    const succ = document.getElementById("success");
+    const movTitle = document.getElementById("mTitle");
+    const revTitle = document.getElementById("rTitle");
+    const revBody = document.getElementById("rBody");
+    const rated = document.getElementById("rate");
+
+    if (
+      movieName !== "" &&
+      reviewTitle1.value !== "" &&
+      review1.value !== "" &&
+      rating !== ""
+    ) {
+      err.innerHTML = "";
+      succ.innerHTML = "Your Review Has Been Submitted";
+      movTitle.innerHTML = "Movie Title: " + movieName.name;
+      revTitle.innerHTML = "Review Title: " + reviewTitle1.value;
+      revBody.innerHTML = "Review: " + review1.value;
+      rated.innerHTML = "Rating: " + rating;
+      callApiAddReview();
+    } else if (
+      movieName === null &&
+      reviewTitle1.value !== "" &&
+      review1.value !== "" &&
+      rating !== ""
+    ) {
+      err.innerHTML = "Please Select Movie";
+      succ.innerHTML = "";
+      movTitle.innerHTML = "";
+      revTitle.innerHTML = "";
+      revBody.innerHTML = "";
+      rated.innerHTML = "";
+    } else if (
+      movieName !== "" &&
+      reviewTitle1.value === "" &&
+      review1.value !== "" &&
+      rating !== ""
+    ) {
+      err.innerHTML = "Please Enter Review Title";
+      succ.innerHTML = "";
+      movTitle.innerHTML = "";
+      revTitle.innerHTML = "";
+      revBody.innerHTML = "";
+      rated.innerHTML = "";
+    } else if (
+      movieName !== "" &&
+      reviewTitle1.value !== "" &&
+      review1.value === "" &&
+      rating !== ""
+    ) {
+      err.innerHTML = "Please Enter Review Body";
+      succ.innerHTML = "";
+      movTitle.innerHTML = "";
+      revTitle.innerHTML = "";
+      revBody.innerHTML = "";
+      rated.innerHTML = "";
+    } else if (
+      movieName !== "" &&
+      reviewTitle1.value !== "" &&
+      review1.value !== "" &&
+      rating === ""
+    ) {
+      err.innerHTML = "Please Select Movie Rating";
+      succ.innerHTML = "";
+      movTitle.innerHTML = "";
+      revTitle.innerHTML = "";
+      revBody.innerHTML = "";
+      rated.innerHTML = "";
+    } else {
+      err.innerHTML = "You Have Left More Than One Space Empty";
+      succ.innerHTML = "";
+      movTitle.innerHTML = "";
+      revTitle.innerHTML = "";
+      revBody.innerHTML = "";
+      rated.innerHTML = "";
+    }
+  };
+
+  return (
+    <div className={classes.root}>
+      <Grid container spacing={4}>
+        <Grid
+          item
+          xs={12}
+          container
+          direction="column"
+          justifyContent="center"
+          alignItems="center"
+        >
+          <Typography variant="h3" component="h3" gutterBottom>
+            Review A Movie
           </Typography>
+        </Grid>
 
+        <Grid
+          item
+          xs={6}
+          container
+          direction="column"
+          justifyContent="center"
+          alignItems="center"
+        >
+          <FormControl className={classes.formControl}>
+            <MovieSelection
+              movieName={movieName.id}
+              handleTitle={handleTitle}
+              isSubmit={isSubmit}
+              movies={movies}
+            />
+          </FormControl>
+        </Grid>
+
+        <Grid
+          item
+          xs={6}
+          container
+          direction="column"
+          justifyContent="center"
+          alignItems="center"
+        >
+          <form className={classes.root} noValidate autoComplete="off">
+            <ReviewTitle
+              reviewTitle={reviewTitle}
+              handleReviewTitle={handleReviewTitle}
+            />
+          </form>
+        </Grid>
+
+        <Grid item xs={1}></Grid>
+
+        <Grid item xs={10}>
+          <form className={classes.root} noValidate autoComplete="off">
+            <ReviewBody review={review} handleReview={handleReview} />
+          </form>
+        </Grid>
+
+        <Grid item xs={1}></Grid>
+
+        <Grid item xs={1}></Grid>
+
+        <Grid item xs={6}>
+          <FormControl component="fieldset">
+            <ReviewRating rating={rating} handleRating={handleRating} />
+          </FormControl>
+        </Grid>
+
+        <Grid item xs={2}></Grid>
+
+        <Grid item xs={3}>
+          <Button variant="contained" color="primary" onClick={handleClick}>
+            Submit
+          </Button>
+        </Grid>
+
+        <Grid item xs={1}></Grid>
+
+        <Grid item xs={10}>
+          <Typography variant="h5" component="h5" gutterBottom>
+            Reviews:
+          </Typography>
+          <p style={{ color: "red" }} id="fail"></p>
+          <p style={{ color: "green" }} id="success"></p>
+          <p id="mTitle"></p>
+          <p id="rTitle"></p>
+          <p id="rBody"></p>
+          <p id="rate"></p>
         </Grid>
       </Grid>
-    )
-
-
-    return (
-      <MuiThemeProvider theme={theme}>
-        <div className={classes.root}>
-          <CssBaseline />
-          <Paper
-            className={classes.paper}
-          >
-            {mainMessage}
-          </Paper>
-
-        </div>
-      </MuiThemeProvider>
-    );
-  }
+    </div>
+  );
 }
-
-Home.propTypes = {
-  classes: PropTypes.object.isRequired
-};
-
-export default withStyles(styles)(Home);
